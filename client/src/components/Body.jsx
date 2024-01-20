@@ -5,18 +5,22 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup'
 import { v4 as uuid } from 'uuid'
 import { TrashIcon } from "@heroicons/react/20/solid";
-import {toast} from 'react-toastify'
-import { saveInvoiceToDb,getListItems } from "../api/apiConnections";
+import { toast } from 'react-toastify'
+import { saveInvoiceToDb, getListItems, getSavedData } from "../api/apiConnections";
 import ReactToPrint from 'react-to-print'
-
+import {
+    Dialog,
+    DialogFooter,
+} from "@material-tailwind/react";
 const TABLE_HEAD = ['Sr No.', 'Item Code', 'Item Name', 'Description', 'Qty', 'Rate', 'Amount']
+const TABLE_ACCOUNT = ['Vr No.', 'Vr Date', 'Account Name', 'Status', 'Amount']
 
 
 const Body = () => {
     const itemCodeRef = useRef(null)
     const voucherFocus = useRef(null)
     const printRef = useRef()
-    const [item_code, setItemCode] = useState('')
+    const [item_code, setItemCode] = useState('ITEM 111')
     const [item_name, setItemName] = useState('ITEM NAME 111')
     const [description, setDescription] = useState('')
     const [qty, setItemQty] = useState('')
@@ -26,17 +30,33 @@ const Body = () => {
     const [total, setTotal] = useState('')
     const [entryRowState, setEntryRowState] = useState(true)
     const [btnDisableStatus, setBtnDisableStatus] = useState(false)
-    const [saveBtn,setSaveBtn] = useState(false)
+    const [saveBtn, setSaveBtn] = useState(false)
+    const [printBtn, setPrintBtn] = useState(false)
+    const [totalInvoices, setTotalInvoices] = useState([])
+    const [invoiceMainTotal, setInvoiceMainTotal] = useState('')
 
-// Item list from Unplugapps API
-    const [items,setItems] = useState([])
-    const getItems = async()=>{
-        const response = await getListItems()
-        if(response) setItems(response)
+    const [open, setOpen] = useState(false)
+    const handleOpen = async () => {
+        setOpen(!open)
+        if(!open){
+            const resp = await getSavedData()
+            if(resp){
+                const sum = resp.reduce((a, b) => a += parseFloat(b.ac_amt), 0)
+                setInvoiceMainTotal(sum)
+                setTotalInvoices(resp)
+            }
+        }
     }
-    useEffect(()=>{
+
+    // Item list from Unplugapps API
+    const [items, setItems] = useState([])
+    const getItems = async () => {
+        const response = await getListItems()
+        if (response) setItems(response)
+    }
+    useEffect(() => {
         getItems()
-    },[])
+    }, [])
 
 
 
@@ -51,9 +71,9 @@ const Body = () => {
         formik.setFieldValue('ac_name', updatedName)
     }
 
-    const itemHandler = (e)=>{
+    const itemHandler = (e) => {
         setItemCode(e.target.value)
-        const index = items.findIndex((single)=>single.item_code===e.target.value)
+        const index = items.findIndex((single) => single.item_code === e.target.value)
         setItemName(items[index].item_name)
     }
 
@@ -92,8 +112,8 @@ const Body = () => {
                 vr_no: uuid(), item_code, item_name, description, qty, rate
             }
             setData((prevs) => [...prevs, newData])
-            // setItemCode('')
-            // setItemName('')
+            setItemCode('ITEM 111')
+            setItemName('ITEM NAME 111')
             setDescription('')
             setItemQty('')
             setItemRate('')
@@ -140,10 +160,11 @@ const Body = () => {
                     values.ac_amt = total
                     const finalData = invData.map((single, index) => { return { ...single, vr_no: Number(values.vr_no), sr_no: (index + 1), qty: Number(single.qty), rate: Number(single.rate) } })
                     const response = await saveInvoiceToDb(values, finalData)
-                    if(!response.status){
+                    if (!response.status) {
                         setSaveBtn(false)
                         toast.error('Voucher number already exists')
-                    }else{
+                    } else {
+                        setPrintBtn(true)
                         toast.success('Invoice saved successfully')
                     }
                 }
@@ -167,8 +188,8 @@ const Body = () => {
     }
 
     const clearRowData = () => {
-        // setItemCode('')
-        // setItemName('')
+        setItemCode('ITEM 111')
+        setItemName('ITEM NAME 111')
         setDescription('')
         setItemQty('')
         setItemRate('')
@@ -177,6 +198,7 @@ const Body = () => {
 
     const clearScreen = async () => {
         setSaveBtn(false)
+        setPrintBtn(false)
         setBtnDisableStatus(false)
         clearRowData()
         formikReset()
@@ -203,7 +225,7 @@ const Body = () => {
                 <div className="flex flex-col justify-center m-4 gap-2 lg:flex-row">
                     <div ref={printRef} className="shadow-2xl overflow-x-scroll rounded">
 
-                    <p className="text-center text-blue-500 text-3xl mt-2 uppercase" style={{textShadow:'1px 1px 2px black'}}>Invoice</p>
+                        <p className="text-center text-blue-500 text-3xl mt-2 uppercase" style={{ textShadow: '1px 1px 2px black' }}>Invoice</p>
                         {/* Header section */}
                         <div className="p-4">
                             <div className="flex justify-between flex-wrap">
@@ -289,13 +311,13 @@ const Body = () => {
 
                                         <td className="border border-slate-300">
                                             <select onChange={itemHandler} ref={itemCodeRef} className="focus:outline">
-                                                {items && items.map(({item_code},index)=><option key={index}>{item_code}</option>)}
+                                                {items && items.map(({ item_code }, index) => <option key={index}>{item_code}</option>)}
                                             </select>
                                         </td>
                                         <td className="border border-slate-300 pl-1">{item_name}</td>
 
 
-                                        <td className="border border-slate-300"><input value={description} onChange={(e) => setDescription(e.target.value.toUpperCase())} className="outline-none pl-1" type="text" maxLength={20} /></td>
+                                        <td className="border border-slate-300"><input value={description} onChange={(e) => setDescription(e.target.value)} className="outline-none pl-1" type="text" maxLength={30} /></td>
                                         <td className="border border-slate-300 text-right"><input value={qty} onChange={handleItemQty} className="outline-none w-20 text-right pr-1" type="text" maxLength={8} /></td>
                                         <td className="border border-slate-300 text-right"><input value={rate} onChange={handleItemRate} className="outline-none w-20 text-right pr-1" type="text" maxLength={8} /></td>
                                         <td className="border border-slate-300 pr-1 text-right">{singleTotal}</td>
@@ -316,16 +338,56 @@ const Body = () => {
                         {/* <button type="button" disabled={!btnDisableStatus} className={`px-4 py-2 rounded border ${btnDisableStatus ? 'bg-blue-500' : 'bg-blue-gray-200'}  text-white hover:text-black hover:bg-blue-gray-200`} onClick={printInvoice} >Print</button> */}
                         <ReactToPrint
                             bodyClass="print-agreement"
-                            content={() =>printRef.current}
+                            content={() => printRef.current}
                             trigger={() => (
-                                <button type="button" disabled={!saveBtn} className={`px-4 py-2 rounded border ${saveBtn ? 'bg-blue-500' : 'bg-blue-gray-200'}  text-white hover:text-black hover:bg-blue-gray-200`}>
+                                <button type="button" disabled={!printBtn} className={`px-4 py-2 rounded border ${printBtn ? 'bg-blue-500' : 'bg-blue-gray-200'}  text-white hover:text-black hover:bg-blue-gray-200`}>
                                     Print
                                 </button>
                             )}
                         />
+                        <button type='button' className="px-4 py-2 rounded border bg-blue-500 text-white hover:text-black hover:bg-blue-gray-200" onClick={handleOpen}>View</button>
                     </div>
                 </div>
             </form>
+            <Dialog className="flex flex-col items-center p-2" open={open} handler={handleOpen} size="xl">
+                <table className="w-full min-w-max table-auto">
+                    <caption className="caption-top">
+                        Invoices
+                    </caption>
+                    <thead>
+                        <tr>
+                            {TABLE_ACCOUNT.map((head) => (
+                                <th key={head} className="border border-blue-gray-100 bg-blue-gray-50 p-2">
+                                    <Typography
+                                        variant="small"
+                                        color="blue-gray"
+                                        className="font-normal leading-none"
+                                    >
+                                        {head}
+                                    </Typography>
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {totalInvoices && totalInvoices.map(({ vr_no, vr_date, status, ac_name, ac_amt }) => {
+                            return (
+                                <tr key={vr_no}>
+                                    <td className=" border border-slate-300 text-center">{vr_no}</td>
+                                    <td className=" border border-slate-300 text-center">{moment(vr_date).format('DD-MM-yyyy')}</td>
+                                    <td className=" border border-slate-300 text-left pl-2">{ac_name}</td>
+                                    <td className=" border border-slate-300 text-center">{status}</td>
+                                    <td className=" border border-slate-300 text-right pr-2">{ac_amt}</td>
+                                </tr>
+                            )
+                        })}
+                        <tr>
+                            <td className="text-right pr-2" colSpan={4}>Total</td>
+                            <td className="border border-slate-300 text-right pr-1">{invoiceMainTotal}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </Dialog>
         </div>
     )
 }

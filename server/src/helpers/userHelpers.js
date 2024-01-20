@@ -37,5 +37,16 @@ export const userHelpers = {
         }catch(error){
             console.error('Error inserting values into detail_table:', error);
         }
+    },
+    getDataSaved:async()=>{
+        try{
+            const searchQuery = `SELECT * FROM header_table`
+            const response = await client.query(searchQuery,[])
+            if(response){
+                return response.rows
+            }
+        }catch(error){
+            console.error('Error getting Header table data', error);
+        }
     }
 }
