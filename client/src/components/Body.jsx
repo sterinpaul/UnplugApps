@@ -293,11 +293,11 @@ const Body = () => {
                                         return (
                                             <tr key={vr_no}>
                                                 <td className="border border-slate-300 pl-1 text-center">{index + 1}</td>
-                                                <td className="w-44 border border-slate-300 pl-1 text-left">{item_code}</td>
-                                                <td className="w-44 border border-slate-300 pl-1 text-left">{item_name}</td>
-                                                <td className="w-44 border border-slate-300 pl-1 text-left">{description}</td>
-                                                <td className="w-20 border border-slate-300 pr-1 text-right">{qty}</td>
-                                                <td className="w-20 border border-slate-300 pr-1 text-right">{rate}</td>
+                                                <td className="border border-slate-300 pl-1 text-left">{item_code}</td>
+                                                <td className="border border-slate-300 pl-1 text-left">{item_name}</td>
+                                                <td className="border border-slate-300 pl-1 text-left">{description}</td>
+                                                <td className="border border-slate-300 pr-1 text-right">{qty}</td>
+                                                <td className="border border-slate-300 pr-1 text-right">{rate}</td>
                                                 <td className="border border-slate-300 pr-1 text-right">{qty * rate}</td>
                                                 <td className="text-center">{!btnDisableStatus && <TrashIcon onClick={() => removeSingleRow(vr_no, qty * rate)} className="w-5 h-5 cursor-pointer text-red-400" />}</td>
                                             </tr>
@@ -310,7 +310,7 @@ const Body = () => {
 
 
                                         <td className="border border-slate-300">
-                                            <select onChange={itemHandler} ref={itemCodeRef} className="focus:outline">
+                                            <select onChange={itemHandler} ref={itemCodeRef} className="focus:outline" value={item_code}>
                                                 {items && items.map(({ item_code }, index) => <option key={index}>{item_code}</option>)}
                                             </select>
                                         </td>
