@@ -3,13 +3,14 @@ const { Client } = pkg
 
 import configkeys from "./configKeys.js"
 
+// Psql db client 
 const client = new Client({
     host: 'localhost',
     database: 'postgres',
     port: configkeys.SQL_DB_PORT
 })
 
-
+// Creating Header, Detail & Item master table if does not exists
 const createTables = async () => {
     try {
         // Check if header_table exists
@@ -59,6 +60,7 @@ const createTables = async () => {
     }
 };
 
+// Connect psql database
 export const connectDB = async () => {
     try {
         client.connect()
@@ -68,14 +70,6 @@ export const connectDB = async () => {
         console.log('Error connecting database ', error)
     }
 }
-
-// client.on('connect',()=>{
-//     console.log('DB connected');
-// })
-
-client.on('end', () => {
-    console.log('Connection end');
-})
 
 
 export default client

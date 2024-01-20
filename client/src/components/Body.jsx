@@ -8,10 +8,8 @@ import { TrashIcon } from "@heroicons/react/20/solid";
 import { toast } from 'react-toastify'
 import { saveInvoiceToDb, getListItems, getSavedData, getInvoiceDetails } from "../api/apiConnections";
 import ReactToPrint from 'react-to-print'
-import {
-    Dialog,
-    DialogFooter,
-} from "@material-tailwind/react";
+import { Dialog } from "@material-tailwind/react";
+
 const TABLE_HEAD = ['Sr No.', 'Item Code', 'Item Name', 'Description', 'Qty', 'Rate', 'Amount']
 const TABLE_ACCOUNT = ['Vr No.', 'Vr Date', 'Account Name', 'Status', 'Amount']
 
@@ -37,10 +35,11 @@ const Body = () => {
     const [savedVoucher, setSavedVoucher] = useState({})
     const [singleVoucherData, setSingleVoucherData] = useState([])
 
+    // Choose a saved invoice to view
     const selectInvoice = async (voucherData) => {
         const response = await getInvoiceDetails(voucherData.vr_no)
         if (response.status) {
-            console.log(voucherData, response.data);
+            setEntryRowState(false)
             setSavedVoucher(voucherData)
             setSingleVoucherData(response.data)
             setOpen(!open)
@@ -51,13 +50,13 @@ const Body = () => {
     }
 
     const [open, setOpen] = useState(false)
+    // Open dialog to choose saved invoice for viewing
     const handleOpen = async () => {
         setOpen(!open)
         if (!open) {
             const resp = await getSavedData()
             if (resp) {
                 const sum = resp.reduce((a, b) => a += parseFloat(b.ac_amt), 0)
-                setEntryRowState(false)
                 setInvoiceMainTotal(sum)
                 setTotalInvoices(resp)
             }
@@ -70,6 +69,8 @@ const Body = () => {
         const response = await getListItems()
         if (response) setItems(response)
     }
+
+    // Side effect of fetching items list
     useEffect(() => {
         getItems()
     }, [])
@@ -77,22 +78,25 @@ const Body = () => {
 
 
 
-
+    // Validation for numbers
     const numberValidation = (value) => {
         return value.replace(/[^0-9]/g, '').replace(/^0+/, '')
     }
 
+    // Validation for Account name
     const nameValidation = (e) => {
         const updatedName = e.target.value.toUpperCase().replace(/[^a-zA-Z ]|\s{2,}/g, '')
         formik.setFieldValue('ac_name', updatedName)
     }
 
+    // Choose an item code from list
     const itemHandler = (e) => {
         setItemCode(e.target.value)
         const index = items.findIndex((single) => single.item_code === e.target.value)
         setItemName(items[index].item_name)
     }
 
+    // Real time calculation of Item qty
     const handleItemQty = (e) => {
         const value = numberValidation(e.target.value)
         setItemQty(value)
@@ -104,6 +108,7 @@ const Body = () => {
         }
     }
 
+    // Real time calculation of Item rate
     const handleItemRate = (e) => {
         const value = numberValidation(e.target.value)
         setItemRate(value)
@@ -115,13 +120,14 @@ const Body = () => {
         }
     }
 
-
+    // Manual validation of Voucher number
     const setVoucherNumber = (e) => {
         const updatedVal = numberValidation(e.target.value)
         const value = updatedVal.slice(0, 10)
         formik.setFieldValue('vr_no', value)
     }
 
+    // Insert new row
     const createNewRow = () => {
         if (item_code && item_name && description && qty && rate) {
             const newData = {
@@ -140,6 +146,7 @@ const Body = () => {
         setTimeout(() => itemCodeRef.current.focus(), 0)
     }
 
+    // Formik validation with Yup
     const formik = useFormik({
         initialValues: {
             vr_no: '',
@@ -197,12 +204,14 @@ const Body = () => {
         }
     })
 
+    // Reset Table header data
     const formikReset = () => {
         formik.resetForm({
             values: formik.initialValues,
         });
     }
 
+    // Clearing only Detail table input row
     const clearRowData = () => {
         setItemCode('ITEM 111')
         setItemName('ITEM NAME 111')
@@ -212,6 +221,7 @@ const Body = () => {
         setSingleTotal('')
     }
 
+    // Clear screen and start new form
     const clearScreen = async () => {
         setSaveBtn(false)
         setPrintBtn(false)
@@ -226,6 +236,7 @@ const Body = () => {
         setTimeout(() => voucherFocus.current.focus(), 0)
     }
 
+    // Remove single item from invoice
     const removeSingleRow = (uid, singleTotal) => {
         const updated = data.filter((single) => single.vr_no !== uid)
         setTotal(prevs => prevs -= singleTotal)
@@ -233,6 +244,7 @@ const Body = () => {
         if (data.length === 1) setEntryRowState(true)
     }
 
+    // Print current window
     const printInvoice = () => {
         window.print()
     }
@@ -309,68 +321,73 @@ const Body = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
+
+                                    {/* Display items in current state */}
                                     {data && data.map(({ vr_no, item_code, item_name, description, qty, rate }, index) => {
                                         return (
                                             <tr key={vr_no}>
                                                 <td className="border border-slate-300 pl-1 text-center">{index + 1}</td>
-                                                <td className="border border-slate-300 pl-1 text-left">{item_code}</td>
-                                                <td className="border border-slate-300 pl-1 text-left">{item_name}</td>
-                                                <td className="border border-slate-300 pl-1 text-left">{description}</td>
-                                                <td className="border border-slate-300 pr-1 text-right">{qty}</td>
-                                                <td className="border border-slate-300 pr-1 text-right">{rate}</td>
-                                                <td className="border border-slate-300 pr-1 text-right">{qty * rate}</td>
+                                                <td className="w-28 border border-slate-300 pl-1 text-left">{item_code}</td>
+                                                <td className="w-40 border border-slate-300 pl-1 text-left">{item_name}</td>
+                                                <td className="w-56 border border-slate-300 pl-1 text-left">{description}</td>
+                                                <td className="w-20 border border-slate-300 pr-1 text-right">{qty}</td>
+                                                <td className="w-20 border border-slate-300 pr-1 text-right">{rate}</td>
+                                                <td className="w-20 border border-slate-300 pr-1 text-right">{qty * rate}</td>
                                                 <td className="text-center">{!btnDisableStatus && <TrashIcon onClick={() => removeSingleRow(vr_no, qty * rate)} className="w-5 h-5 cursor-pointer text-red-400" />}</td>
                                             </tr>
                                         )
                                     })}
 
+                                    {/* Showing/viewing saved voucher header */}
                                     {singleVoucherData && singleVoucherData.map(({ sr_no, item_code, item_name, description, qty, rate }) => {
                                         return (
                                             <tr key={sr_no}>
                                                 <td className="border border-slate-300 pl-1 text-center">{sr_no}</td>
-                                                <td className="border border-slate-300 pl-1 text-left">{item_code}</td>
-                                                <td className="border border-slate-300 pl-1 text-left">{item_name}</td>
-                                                <td className="border border-slate-300 pl-1 text-left">{description}</td>
-                                                <td className="border border-slate-300 pr-1 text-right">{qty.replace('.000','')}</td>
-                                                <td className="border border-slate-300 pr-1 text-right">{rate.replace('.00','')}</td>
-                                                <td className="border border-slate-300 pr-1 text-right">{qty * rate}</td>
+                                                <td className="w-28 border border-slate-300 pl-1 text-left">{item_code}</td>
+                                                <td className="w-40 border border-slate-300 pl-1 text-left">{item_name}</td>
+                                                <td className="w-56 border border-slate-300 pl-1 text-left">{description}</td>
+                                                <td className="w-20 border border-slate-300 pr-1 text-right">{qty.replace('.000','')}</td>
+                                                <td className="w-20 border border-slate-300 pr-1 text-right">{rate.replace('.00','')}</td>
+                                                <td className="w-20 border border-slate-300 pr-1 text-right">{qty * rate}</td>
                                             </tr>
                                         )
                                     })}
 
+                                    {/* Table row for input */}
                                     {entryRowState && <tr>
                                         <td className="border border-slate-300 text-center">{data.length + 1}</td>
                                         {/* <td className="border border-slate-300"><input ref={itemCodeRef} value={item_code} onChange={(e) => setItemCode(e.target.value.toUpperCase())} className="outline-none pl-1" type="text" maxLength={20} /></td>
                                         <td className="border border-slate-300"><input value={item_name} onChange={(e) => setItemName(e.target.value.toUpperCase())} className="outline-none pl-1" type="text" maxLength={20} /></td> */}
 
 
-                                        <td className="border border-slate-300">
-                                            <select onChange={itemHandler} ref={itemCodeRef} className="focus:outline" value={item_code}>
+                                        <td className="w-28 border border-slate-300">
+                                            <select onChange={itemHandler} ref={itemCodeRef} className="focus:outline w-full" value={item_code}>
                                                 {items && items.map(({ item_code }, index) => <option key={index}>{item_code}</option>)}
                                             </select>
                                         </td>
-                                        <td className="border border-slate-300 pl-1">{item_name}</td>
+                                        <td className="w-40 border border-slate-300 pl-1">{item_name}</td>
 
 
-                                        <td className="border border-slate-300"><input value={description} onChange={(e) => setDescription(e.target.value)} className="outline-none pl-1" type="text" maxLength={30} /></td>
-                                        <td className="border border-slate-300 text-right"><input value={qty} onChange={handleItemQty} className="outline-none w-20 text-right pr-1" type="text" maxLength={8} /></td>
-                                        <td className="border border-slate-300 text-right"><input value={rate} onChange={handleItemRate} className="outline-none w-20 text-right pr-1" type="text" maxLength={8} /></td>
-                                        <td className="border border-slate-300 pr-1 text-right">{singleTotal}</td>
+                                        <td className="w-56 border border-slate-300"><input value={description} onChange={(e) => setDescription(e.target.value)} className="outline-none pl-1 w-full" type="text" maxLength={30} /></td>
+                                        <td className="w-20 border border-slate-300 text-right"><input value={qty} onChange={handleItemQty} className="outline-none w-full text-right pr-1" type="text" maxLength={8} /></td>
+                                        <td className="w-20 border border-slate-300 text-right"><input value={rate} onChange={handleItemRate} className="outline-none w-full text-right pr-1" type="text" maxLength={8} /></td>
+                                        <td className="w-20 border border-slate-300 pr-1 text-right">{singleTotal}</td>
                                         <td className="text-center">{data.length ? <TrashIcon onClick={() => { setEntryRowState(false); clearRowData() }} className="w-5 h-5 cursor-pointer text-red-400" /> : null}</td>
                                     </tr>}
                                     <tr>
                                         <td className="text-right pr-2" colSpan={6}>Total</td>
-                                        <td className="border border-slate-300 text-right pr-1">{savedVoucher?.ac_amt ? savedVoucher.ac_amt : total}</td>
+                                        <td className="border border-slate-300 text-right pr-1">{savedVoucher?.ac_amt ? savedVoucher.ac_amt.replace('.00','') : total}</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </Card>
                     </div>
+
+                    {/* Buttons for various functionalities */}
                     <div className="flex justify-center lg:flex-col">
                         <button type="button" className="px-4 py-2 rounded border bg-blue-500 text-white hover:text-black hover:bg-blue-gray-200" onClick={clearScreen} >New</button>
                         <button type="button" disabled={btnDisableStatus} className={`px-4 py-2 rounded border ${btnDisableStatus ? 'bg-blue-gray-200' : 'bg-blue-500'}  text-white hover:text-black hover:bg-blue-gray-200`} onClick={createNewRow}>Insert</button>
                         <button type="submit" disabled={saveBtn} className={`px-4 py-2 rounded border ${saveBtn ? 'bg-blue-gray-200' : 'bg-blue-500'}  text-white hover:text-black hover:bg-blue-gray-200`}>Save</button>
-                        {/* <button type="button" disabled={!btnDisableStatus} className={`px-4 py-2 rounded border ${btnDisableStatus ? 'bg-blue-500' : 'bg-blue-gray-200'}  text-white hover:text-black hover:bg-blue-gray-200`} onClick={printInvoice} >Print</button> */}
                         <ReactToPrint
                             bodyClass="print-agreement"
                             content={() => printRef.current}
@@ -384,6 +401,8 @@ const Body = () => {
                     </div>
                 </div>
             </form>
+
+            {/* Dialog for viewing saved invoice headers and it's Total */}
             <Dialog className="flex flex-col items-center p-2" open={open} handler={handleOpen} size="xl">
                 <table className="w-full min-w-max table-auto">
                     <caption className="caption-top">
@@ -407,12 +426,12 @@ const Body = () => {
                     <tbody>
                         {totalInvoices && totalInvoices.map((single) => {
                             return (
-                                <tr key={single.vr_no} onClick={() => selectInvoice(single)} className="cursor-pointer">
+                                <tr key={single.vr_no} onClick={() => selectInvoice(single)} className="cursor-pointer hover:bg-blue-50">
                                     <td className=" border border-slate-300 text-center">{single.vr_no}</td>
                                     <td className=" border border-slate-300 text-center">{moment(single.vr_date).format('DD-MM-yyyy')}</td>
                                     <td className=" border border-slate-300 text-left pl-2">{single.ac_name}</td>
                                     <td className=" border border-slate-300 text-center">{single.status}</td>
-                                    <td className=" border border-slate-300 text-right pr-2">{single.ac_amt}</td>
+                                    <td className=" border border-slate-300 text-right pr-2">{single.ac_amt.replace('.00','')}</td>
                                 </tr>
                             )
                         })}
