@@ -6,7 +6,7 @@ import * as Yup from 'yup'
 import { v4 as uuid } from 'uuid'
 import { TrashIcon } from "@heroicons/react/20/solid";
 import { toast } from 'react-toastify'
-import { saveInvoiceToDb, getListItems, getSavedData } from "../api/apiConnections";
+import { saveInvoiceToDb, getListItems, getSavedData, getInvoiceDetails } from "../api/apiConnections";
 import ReactToPrint from 'react-to-print'
 import {
     Dialog,
@@ -34,14 +34,30 @@ const Body = () => {
     const [printBtn, setPrintBtn] = useState(false)
     const [totalInvoices, setTotalInvoices] = useState([])
     const [invoiceMainTotal, setInvoiceMainTotal] = useState('')
+    const [savedVoucher, setSavedVoucher] = useState({})
+    const [singleVoucherData, setSingleVoucherData] = useState([])
+
+    const selectInvoice = async (voucherData) => {
+        const response = await getInvoiceDetails(voucherData.vr_no)
+        if (response.status) {
+            console.log(voucherData, response.data);
+            setSavedVoucher(voucherData)
+            setSingleVoucherData(response.data)
+            setOpen(!open)
+            setSaveBtn(true)
+            setPrintBtn(true)
+            setBtnDisableStatus(true)
+        }
+    }
 
     const [open, setOpen] = useState(false)
     const handleOpen = async () => {
         setOpen(!open)
-        if(!open){
+        if (!open) {
             const resp = await getSavedData()
-            if(resp){
+            if (resp) {
                 const sum = resp.reduce((a, b) => a += parseFloat(b.ac_amt), 0)
+                setEntryRowState(false)
                 setInvoiceMainTotal(sum)
                 setTotalInvoices(resp)
             }
@@ -204,6 +220,8 @@ const Body = () => {
         formikReset()
         setTotal('')
         setData([])
+        setSavedVoucher({})
+        setSingleVoucherData([])
         if (!entryRowState) setEntryRowState(true)
         setTimeout(() => voucherFocus.current.focus(), 0)
     }
@@ -229,19 +247,20 @@ const Body = () => {
                         {/* Header section */}
                         <div className="p-4">
                             <div className="flex justify-between flex-wrap">
-                                <div className="flex items-center gap-1">
+                                {savedVoucher?.vr_no ? <span>Vr No : {savedVoucher.vr_no}</span> : <div className="flex items-center gap-1">
                                     <label htmlFor='vr_no'>Vr No:</label>
                                     <input ref={voucherFocus} id='vr_no' onChange={setVoucherNumber} value={formik.values.vr_no} className="w-24 bg-gray-100 pl-1 outline-none rounded" type="text" maxLength={10} />
                                     <p className="h-4 ml-2 text-xs text-red-800">{formik.touched.vr_no && formik.errors.vr_no &&
                                         formik.errors.vr_no}</p>
-                                </div>
-                                <div className="flex items-center gap-1">
+                                </div>}
+                                {savedVoucher?.vr_date ? <span>Vr Date : {moment(savedVoucher.vr_date).format('DD-MM-YYYY')}</span> : <div className="flex items-center gap-1">
                                     <label htmlFor='vr_date'>Vr Date:</label>
-                                    <input id='vr_date' className="w-28 bg-gray-100 pl-1 outline-none rounded" type="text" value={moment().format('YYYY-MM-DD')} readOnly />
+                                    <input id='vr_date' className="w-28 bg-gray-100 pl-1 outline-none rounded" type="text" value={moment().format('DD-MM-YYYY')} readOnly />
                                     <p className="h-4 ml-2 text-xs text-red-800">{formik.touched.vr_date && formik.errors.vr_date &&
                                         formik.errors.vr_date}</p>
-                                </div>
-                                <div className="flex items-center gap-1">
+                                </div>}
+
+                                {savedVoucher?.status ? <span>Status : {savedVoucher.status}</span> : <div className="flex items-center gap-1">
                                     <label htmlFor='status'>Status:</label>
                                     <select id='status' {...formik.getFieldProps('status')} >
                                         <option>A</option>
@@ -249,19 +268,20 @@ const Body = () => {
                                     </select>
                                     <p className="h-4 ml-2 text-xs text-red-800">{formik.touched.status && formik.errors.status &&
                                         formik.errors.status}</p>
-                                </div>
+                                </div>}
                             </div>
+
                             <div className="flex justify-between mt-4 gap-4 flex-wrap">
-                                <div className="flex items-center gap-1">
+                                {savedVoucher?.ac_name ? <span>Ac Name : {savedVoucher.ac_name}</span> : <div className="flex items-center gap-1">
                                     <label htmlFor='ac_name'>Ac Name:</label>
                                     <input id='ac_name' className="bg-gray-100 pl-1 outline-none rounded" type="text" value={formik.values.ac_name} onChange={nameValidation} maxLength={30} />
                                     <p className="h-4 ml-2 text-xs text-red-800">{formik.touched.ac_name && formik.errors.ac_name &&
                                         formik.errors.ac_name}</p>
-                                </div>
-                                <div className="flex items-center gap-1">
+                                </div>}
+                                {savedVoucher?.ac_amt ? <span>Ac Amt : {savedVoucher.ac_amt.replace('.00','')}</span> : <div className="flex items-center gap-1">
                                     <label htmlFor='ac_amt'>Ac Amt:</label>
                                     <input id='ac_amt' value={total} className="w-20 bg-gray-100 text-right pr-1 outline-none rounded" type="text" readOnly tabIndex={-1} />
-                                </div>
+                                </div>}
                             </div>
                         </div>
 
@@ -303,6 +323,21 @@ const Body = () => {
                                             </tr>
                                         )
                                     })}
+
+                                    {singleVoucherData && singleVoucherData.map(({ sr_no, item_code, item_name, description, qty, rate }) => {
+                                        return (
+                                            <tr key={sr_no}>
+                                                <td className="border border-slate-300 pl-1 text-center">{sr_no}</td>
+                                                <td className="border border-slate-300 pl-1 text-left">{item_code}</td>
+                                                <td className="border border-slate-300 pl-1 text-left">{item_name}</td>
+                                                <td className="border border-slate-300 pl-1 text-left">{description}</td>
+                                                <td className="border border-slate-300 pr-1 text-right">{qty.replace('.000','')}</td>
+                                                <td className="border border-slate-300 pr-1 text-right">{rate.replace('.00','')}</td>
+                                                <td className="border border-slate-300 pr-1 text-right">{qty * rate}</td>
+                                            </tr>
+                                        )
+                                    })}
+
                                     {entryRowState && <tr>
                                         <td className="border border-slate-300 text-center">{data.length + 1}</td>
                                         {/* <td className="border border-slate-300"><input ref={itemCodeRef} value={item_code} onChange={(e) => setItemCode(e.target.value.toUpperCase())} className="outline-none pl-1" type="text" maxLength={20} /></td>
@@ -325,7 +360,7 @@ const Body = () => {
                                     </tr>}
                                     <tr>
                                         <td className="text-right pr-2" colSpan={6}>Total</td>
-                                        <td className="border border-slate-300 text-right pr-1">{total}</td>
+                                        <td className="border border-slate-300 text-right pr-1">{savedVoucher?.ac_amt ? savedVoucher.ac_amt : total}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -370,20 +405,20 @@ const Body = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {totalInvoices && totalInvoices.map(({ vr_no, vr_date, status, ac_name, ac_amt }) => {
+                        {totalInvoices && totalInvoices.map((single) => {
                             return (
-                                <tr key={vr_no}>
-                                    <td className=" border border-slate-300 text-center">{vr_no}</td>
-                                    <td className=" border border-slate-300 text-center">{moment(vr_date).format('DD-MM-yyyy')}</td>
-                                    <td className=" border border-slate-300 text-left pl-2">{ac_name}</td>
-                                    <td className=" border border-slate-300 text-center">{status}</td>
-                                    <td className=" border border-slate-300 text-right pr-2">{ac_amt}</td>
+                                <tr key={single.vr_no} onClick={() => selectInvoice(single)} className="cursor-pointer">
+                                    <td className=" border border-slate-300 text-center">{single.vr_no}</td>
+                                    <td className=" border border-slate-300 text-center">{moment(single.vr_date).format('DD-MM-yyyy')}</td>
+                                    <td className=" border border-slate-300 text-left pl-2">{single.ac_name}</td>
+                                    <td className=" border border-slate-300 text-center">{single.status}</td>
+                                    <td className=" border border-slate-300 text-right pr-2">{single.ac_amt}</td>
                                 </tr>
                             )
                         })}
                         <tr>
-                            <td className="text-right pr-2" colSpan={4}>Total</td>
-                            <td className="border border-slate-300 text-right pr-1">{invoiceMainTotal}</td>
+                            <td className="text-right pr-2 font-semibold" colSpan={4}>Total</td>
+                            <td className="border border-slate-300 text-right font-semibold pr-1">{invoiceMainTotal}</td>
                         </tr>
                     </tbody>
                 </table>

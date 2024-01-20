@@ -40,13 +40,25 @@ export const userHelpers = {
     },
     getDataSaved:async()=>{
         try{
-            const searchQuery = `SELECT * FROM header_table`
+            const searchQuery = `SELECT * FROM header_table ORDER BY vr_no ASC`
             const response = await client.query(searchQuery,[])
             if(response){
                 return response.rows
             }
         }catch(error){
             console.error('Error getting Header table data', error);
+        }
+    },
+    getSingleVoucherDetails:async(vr_no)=>{
+        try{
+            const searchQuery = `SELECT * FROM detail_table WHERE vr_no = $1 ORDER BY sr_no ASC`;
+            const value = [vr_no]
+            const response = await client.query(searchQuery,value)
+            if(response){
+                return response.rows
+            }
+        }catch(error){
+            console.error('Error getting Details table', error);
         }
     }
 }

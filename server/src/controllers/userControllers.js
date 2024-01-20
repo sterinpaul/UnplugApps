@@ -17,5 +17,12 @@ export const controllers = {
         if(headerData){
             res.json(headerData)
         }
+    },
+    getSingleVoucherData:async(req,res)=>{
+        const {vr_no} = req.params
+        const data = await userHelpers.getSingleVoucherDetails(vr_no)
+        if(data){
+            res.json({status:true,data})
+        }
     }
 }

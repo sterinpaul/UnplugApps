@@ -27,3 +27,12 @@ export const getSavedData = async()=>{
         throw new Error('Error while fetching saved invoices from server')
     }
 }
+
+export const getInvoiceDetails = async(vr_no)=>{
+    try{
+        const response = await baseUrl.get(`/getsinglevoucherdata/${vr_no}`)
+        if(response) return response.data
+    }catch(error){
+        throw new Error('Error while fetching saved single invoice details from server')
+    }
+}
