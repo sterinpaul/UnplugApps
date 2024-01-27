@@ -41,6 +41,7 @@ const Body = () => {
         if (response.status) {
             setEntryRowState(false)
             setSavedVoucher(voucherData)
+            setData([])
             setSingleVoucherData(response.data)
             setOpen(!open)
             setSaveBtn(true)
